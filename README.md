@@ -64,23 +64,23 @@ For a thorough list of supported features and examples check [the test file](./i
 
 ## TODO
 
-- [ ] support specifying schema as variable (`const schema = { ... } as const`) instead of type
-    - requires handling `DeepReadonly<JSONSchema>` type
-- [ ] specify draft?
-- [ ] object `dependencies` https://json-schema.org/understanding-json-schema/reference/object.html#dependencies
-- [ ] object `patternProperties` https://json-schema.org/understanding-json-schema/reference/object.html#dependencies
-- [ ] array `contains` https://json-schema.org/understanding-json-schema/reference/array.html#list-validation
-- [ ] `allOf`, `anyOf`, `oneOf` https://json-schema.org/understanding-json-schema/reference/combining.html
-- [ ] `if`, `then`, `else` https://json-schema.org/understanding-json-schema/reference/conditionals.html
-- [ ] `$id` https://json-schema.org/understanding-json-schema/structuring.html#using-id-with-ref
+- [ ] define schema as variable (`const schema = { ... } as const`) instead of interface
+    - requires handling something like `DeepReadonly<JSONSchema>` since `as const` turns everything `readonly`
+- [ ] specify supported JSON Schema draft
+- [ ] [object `dependencies`](https://json-schema.org/understanding-json-schema/reference/object.html#dependencies)
+- [ ] [object `patternProperties`](https://json-schema.org/understanding-json-schema/reference/object.html#dependencies)
+- [ ] [array `contains`](https://json-schema.org/understanding-json-schema/reference/array.html#list-validation)
+- [ ] [`allOf`, `anyOf`, `oneOf`](https://json-schema.org/understanding-json-schema/reference/combining.html)
+- [ ] [`if`, `then`, `else`](https://json-schema.org/understanding-json-schema/reference/conditionals.html)
+- [ ] [`$id`](https://json-schema.org/understanding-json-schema/structuring.html#using-id-with-ref)
 
 ## Unsupported
 
-- `not` only works on primitive values such as `{ "not": { "type": ["number", "string"] } }`
-- `$ref` requires hand-filling a mapping of `Record<$ref URL, path to definition | definition object>`, recommend using `$id` instead?
-- `$ref` and recursion https://json-schema.org/understanding-json-schema/structuring.html#recursion
-- object `propertyNames` https://json-schema.org/understanding-json-schema/reference/object.html#property-names
-- object `minProperties`/`maxProperties` https://json-schema.org/understanding-json-schema/reference/object.html#size
+- `not` only works on primitive types such as `{ "not": { "type": ["number", "string"] } }`
+- `$ref` requires hand-filling a mapping of `Record<$ref URL, path to definition | definition object>`, consider using `$id` instead
+- [recursive `$ref`](https://json-schema.org/understanding-json-schema/structuring.html#recursion)
+- [object `propertyNames`](https://json-schema.org/understanding-json-schema/reference/object.html#property-names)
+- [object `minProperties`/`maxProperties`](https://json-schema.org/understanding-json-schema/reference/object.html#size)
 - [tuple `items: [...]`](https://json-schema.org/understanding-json-schema/reference/array.html#list-validation) limited to a maximum of 6 items for now
 - [array `minItems`/`maxItems`](https://json-schema.org/understanding-json-schema/reference/array.html#length)
     - hardcoding might work when list length is below a reasonable number...?
