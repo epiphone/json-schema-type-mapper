@@ -19,19 +19,52 @@ export type JSONValue =
   | JSONArray
 
 /**
+ * Group `definitions` sub-schemas by their `$id` property:
+ */
+
+type Definitions = Record<string, JSONSchema>
+
+interface JSONSchemaDefinitions extends JSONSchema {
+  definitions: Record<string, JSONSchema>
+}
+
+export type DefinitionIds<S extends JSONSchemaDefinitions> = Exclude<
+  S['definitions'][keyof S['definitions']]['$id'],
+  undefined
+>
+
+export type DefinitionsById<S> = S extends JSONSchemaDefinitions
+  ? {
+      [Id in DefinitionIds<S>]: {
+        [P in keyof S['definitions']]: S['definitions'][P]['$id'] extends Id
+          ? S['definitions'][P]
+          : never
+      }[keyof S['definitions']]
+    }
+  : {}
+
+/**
  * Root schema
  *
  * `Schema` cannot refer to itself recursively so we define another, partly
  * overlapping type `Property` as means of indirection:
  */
 
-export type Schema<S extends JSONSchema | boolean | undefined> = S extends false
+export type Schema<
+  S extends JSONSchema | boolean | undefined,
+  D extends Definitions = DefinitionsById<S>
+> = S extends false
   ? never // TODO: handle other negation types such as `{ not: true }` and `{ not: {} }`
+  : S extends JSONSchemaRef
+  ? RefObject<S, D>
   : S extends JSONSchema
-  ? Property<S>
+  ? Property<S, D>
   : JSONValue // `Schema<true | undefined | {}>` resolves to any valid JSON value
 
-export type Property<S extends JSONSchema> = S extends JSONSchemaNot
+export type Property<
+  S extends JSONSchema,
+  D extends Definitions = {}
+> = S extends JSONSchemaNot
   ? NotObject<S>
   : S extends JSONSchemaConst
   ? ConstObject<S>
@@ -40,11 +73,11 @@ export type Property<S extends JSONSchema> = S extends JSONSchemaNot
   : S extends JSONSchemaPrimitive
   ? PrimitiveObject<S>
   : S extends JSONSchemaArray
-  ? ArrayObject<S>
+  ? ArrayObject<S, D>
   : S extends JSONSchemaObject
-  ? PropertiesObject<S>
+  ? PropertiesObject<S, D>
   : S extends { type: 'object' } // Handle empty objects: `{ "type": "object" }`
-  ? PropertiesObject<S & { properties: {} }>
+  ? PropertiesObject<S & { properties: {} }, D>
   : JSONValue
 
 /**
@@ -138,11 +171,12 @@ interface JSONSchemaArray extends JSONSchema {
 }
 
 export type ArrayObject<
-  S extends JSONSchemaArray
+  S extends JSONSchemaArray,
+  D extends Definitions = {}
 > = S['items'] extends JSONSchema
-  ? Schema<S['items']>[]
+  ? Schema<S['items'], D>[]
   : S extends JSONSchemaTuple
-  ? TupleObject<S>
+  ? TupleObject<S, D>
   : JSONValue[] // when `items` is undefined, allow an array of any JSON values
 
 interface JSONSchemaTuple extends JSONSchema {
@@ -153,38 +187,46 @@ interface JSONSchemaTuple extends JSONSchema {
 // The ugly part - tuple schemas for now work up to a maximum of 6 hardcoded items:
 
 export type TupleObject<
-  S extends JSONSchemaTuple
+  S extends JSONSchemaTuple,
+  D extends Definitions = {}
 > = S['additionalItems'] extends false
   ? TupleNoAdditionalObject<S>
   : TupleWithAdditionalObject<S>
 
-type TupleNoAdditionalObject<S extends JSONSchemaTuple> = S['items'] extends [
-  infer S1
-]
-  ? [] | [Schema<S1>]
+type TupleNoAdditionalObject<
+  S extends JSONSchemaTuple,
+  D extends Definitions = {}
+> = S['items'] extends [infer S1]
+  ? [] | [Schema<S1, D>]
   : S['items'] extends [infer S1, infer S2]
-  ? [] | [Schema<S1>] | [Schema<S1>, Schema<S2>]
+  ? [] | [Schema<S1, D>] | [Schema<S1, D>, Schema<S2, D>]
   : S['items'] extends [infer S1, infer S2, infer S3]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2, D>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>]
   : S['items'] extends [infer S1, infer S2, infer S3, infer S4]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2, D>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>, Schema<S4, D>]
   : S['items'] extends [infer S1, infer S2, infer S3, infer S4, infer S5]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>, Schema<S5>]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2, D>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>, Schema<S4, D>]
+      | [
+          Schema<S1, D>,
+          Schema<S2, D>,
+          Schema<S3, D>,
+          Schema<S4, D>,
+          Schema<S5, D>
+        ]
   : S['items'] extends [
       infer S1,
       infer S2,
@@ -195,55 +237,74 @@ type TupleNoAdditionalObject<S extends JSONSchemaTuple> = S['items'] extends [
     ]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>, Schema<S5>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>, Schema<S5>, Schema<S6>]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2, D>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>, Schema<S4, D>]
+      | [
+          Schema<S1, D>,
+          Schema<S2, D>,
+          Schema<S3, D>,
+          Schema<S4, D>,
+          Schema<S5, D>
+        ]
+      | [
+          Schema<S1, D>,
+          Schema<S2, D>,
+          Schema<S3, D>,
+          Schema<S4, D>,
+          Schema<S5, D>,
+          Schema<S6, D>
+        ]
   : never
 
-type TupleWithAdditionalObject<S extends JSONSchemaTuple> = S['items'] extends [
-  infer S1
-]
-  ? [] | [Schema<S1>, ...Schema<S['additionalItems']>[]]
+type TupleWithAdditionalObject<
+  S extends JSONSchemaTuple,
+  D extends Definitions = {}
+> = S['items'] extends [infer S1]
+  ? [] | [Schema<S1, D>, ...Schema<S['additionalItems'], D>[]]
   : S['items'] extends [infer S1, infer S2]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>, ...Schema<S['additionalItems']>[]]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2, D>, ...Schema<S['additionalItems'], D>[]]
   : S['items'] extends [infer S1, infer S2, infer S3]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, ...Schema<S['additionalItems']>[]]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2>]
+      | [
+          Schema<S1, D>,
+          Schema<S2, D>,
+          Schema<S3, D>,
+          ...Schema<S['additionalItems'], D>[]
+        ]
   : S['items'] extends [infer S1, infer S2, infer S3, infer S4]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3>]
       | [
-          Schema<S1>,
-          Schema<S2>,
-          Schema<S3>,
-          Schema<S4>,
-          ...Schema<S['additionalItems']>[]
+          Schema<S1, D>,
+          Schema<S2, D>,
+          Schema<S3, D>,
+          Schema<S4, D>,
+          ...Schema<S['additionalItems'], D>[]
         ]
   : S['items'] extends [infer S1, infer S2, infer S3, infer S4, infer S5]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>, Schema<S4>]
       | [
-          Schema<S1>,
-          Schema<S2>,
-          Schema<S3>,
-          Schema<S4>,
-          Schema<S5>,
-          ...Schema<S['additionalItems']>[]
+          Schema<S1, D>,
+          Schema<S2, D>,
+          Schema<S3, D>,
+          Schema<S4, D>,
+          Schema<S5, D>,
+          ...Schema<S['additionalItems'], D>[]
         ]
   : S['items'] extends [
       infer S1,
@@ -255,19 +316,19 @@ type TupleWithAdditionalObject<S extends JSONSchemaTuple> = S['items'] extends [
     ]
   ?
       | []
-      | [Schema<S1>]
-      | [Schema<S1>, Schema<S2>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>]
-      | [Schema<S1>, Schema<S2>, Schema<S3>, Schema<S4>, Schema<S5>]
+      | [Schema<S1, D>]
+      | [Schema<S1, D>, Schema<S2>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>, Schema<S4>]
+      | [Schema<S1, D>, Schema<S2, D>, Schema<S3, D>, Schema<S4, D>, Schema<S5>]
       | [
-          Schema<S1>,
-          Schema<S2>,
-          Schema<S3>,
-          Schema<S4>,
-          Schema<S5>,
-          Schema<S6>,
-          ...Schema<S['additionalItems']>[]
+          Schema<S1, D>,
+          Schema<S2, D>,
+          Schema<S3, D>,
+          Schema<S4, D>,
+          Schema<S5, D>,
+          Schema<S6, D>,
+          ...Schema<S['additionalItems'], D>[]
         ]
   : never
 
@@ -290,8 +351,24 @@ export type OptionalProperties<S extends JSONSchemaObject> = Exclude<
   RequiredProperties<S>
 >
 
-export type PropertiesObject<S extends JSONSchemaObject> = {
-  [P in RequiredProperties<S>]: Schema<S['properties'][P]>
+export type PropertiesObject<
+  S extends JSONSchemaObject,
+  D extends Definitions = {}
+> = {
+  [P in RequiredProperties<S>]: Schema<S['properties'][P], D>
 } &
-  { [P in OptionalProperties<S>]?: Schema<S['properties'][P]> } &
-  { [_ in string]: Schema<S['additionalProperties']> }
+  { [P in OptionalProperties<S>]?: Schema<S['properties'][P], D> } &
+  { [_ in string]: Schema<S['additionalProperties'], D> }
+
+/**
+ * Reference objects such as `{ "$ref": "#some-id" }`:
+ */
+
+interface JSONSchemaRef extends JSONSchema {
+  $ref: string
+}
+
+export type RefObject<
+  S extends JSONSchemaRef,
+  D extends Definitions = {}
+> = D[S['$ref']] extends JSONSchema ? Property<D[S['$ref']], D> : JSONValue

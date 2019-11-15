@@ -72,7 +72,7 @@ For a thorough list of supported features and examples check [the test file](./i
 - [ ] [array `contains`](https://json-schema.org/understanding-json-schema/reference/array.html#list-validation)
 - [ ] [`allOf`, `anyOf`, `oneOf`](https://json-schema.org/understanding-json-schema/reference/combining.html)
 - [ ] [`if`, `then`, `else`](https://json-schema.org/understanding-json-schema/reference/conditionals.html)
-- [ ] [`$id`](https://json-schema.org/understanding-json-schema/structuring.html#using-id-with-ref)
+- [x] [`$id`](https://json-schema.org/understanding-json-schema/structuring.html#using-id-with-ref)
 
 ## Unsupported
 

@@ -122,3 +122,30 @@ declare const tupleNoAdditional: Schema<{
   items: [{ type: 'string' }, { type: 'null' }]
 }>
 expectType<[] | [string] | [string, null]>(tupleNoAdditional)
+
+// $id references:
+
+declare const idSchema: Schema<{
+  definitions: {
+    name: {
+      $id: '#name'
+      type: 'string'
+    }
+  }
+  $ref: '#name'
+}>
+expectType<string>(idSchema)
+
+declare const idArraySchema: Schema<{
+  definitions: {
+    level: {
+      $id: '#level'
+      enum: [1, 2]
+    }
+  }
+  type: 'array'
+  items: {
+    $ref: '#level'
+  }
+}>
+expectType<Array<1 | 2>>(idArraySchema)
