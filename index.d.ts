@@ -167,7 +167,7 @@ export type ConstObject<S extends JSONSchemaConst> = S extends {
   : never
 
 /**
- * ARRAY SCHEMA:
+ * Array schemas:
  */
 
 interface JSONSchemaArray extends JSONSchema {
