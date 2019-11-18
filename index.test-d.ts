@@ -1,5 +1,5 @@
 // tslint:disable:no-implicit-dependencies
-import { expectType } from 'tsd'
+import { expectAssignable, expectNotAssignable, expectType } from 'tsd'
 import { JSONValue, Schema } from '.'
 
 // Empty and boolean schemas:
@@ -86,6 +86,8 @@ declare const arrayMultipleBasic: Schema<{
   items: { type: ['string', 'boolean'] }
 }>
 expectType<Array<string | boolean>>(arrayMultipleBasic)
+
+// Tuple schemas:
 
 declare const tuple: Schema<{
   type: 'array'
@@ -199,3 +201,46 @@ declare const nestedObjectSchema: Schema<{
   additionalProperties: false
 }>
 expectAssignable<{ x?: { y?: string } }>(nestedObjectSchema)
+
+// anyOf:
+
+declare const anyOfSchema: Schema<{
+  anyOf: [{ type: 'string' }, { type: 'number' }]
+}>
+expectType<string | number>(anyOfSchema)
+
+declare const anyOfArraySchema: Schema<{
+  type: 'array'
+  items: {
+    anyOf: [{ type: 'string' }, { type: 'array'; items: { type: 'number' } }]
+  }
+}>
+expectType<Array<string | number[]>>(anyOfArraySchema)
+
+declare const anyOfObjectSchema: Schema<{
+  type: 'object'
+  properties: {
+    x: {
+      anyOf: [{ type: 'string' }, { type: 'array'; items: { type: 'number' } }]
+    }
+  }
+  required: ['x']
+}>
+expectAssignable<{ x: string | number[] }>(anyOfObjectSchema)
+expectNotAssignable<{ x: null }>(anyOfObjectSchema)
+
+// allOf:
+
+declare const allOfSchema: Schema<{
+  allOf: [{ type: 'string' }, { type: 'number' }]
+}>
+expectType<string & number>(allOfSchema)
+
+declare const allOfObjectSchema: Schema<{
+  allOf: [
+    { properties: { x: { type: 'string' } }; additionalProperties: false },
+    { properties: { y: { type: 'number' } }; additionalProperties: false }
+  ]
+}>
+expectAssignable<{ x?: string; y?: number }>(allOfObjectSchema)
+expectNotAssignable<{ x?: string; y?: number; z: number }>(allOfObjectSchema)

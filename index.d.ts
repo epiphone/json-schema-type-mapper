@@ -57,6 +57,10 @@ export type Schema<
   ? never // TODO: handle other negation types such as `{ not: true }` and `{ not: {} }`
   : S extends JSONSchemaRef
   ? RefObject<S, D>
+  : S extends JSONSchemaAnyOf
+  ? AnyOfObject<S, D>
+  : S extends JSONSchemaAllOf
+  ? AllOfObject<S, D>
   : S extends JSONSchema
   ? Property<S, D>
   : JSONValue // `Schema<true | undefined | {}>` resolves to any valid JSON value
@@ -372,3 +376,40 @@ export type RefObject<
   S extends JSONSchemaRef,
   D extends Definitions = {}
 > = D[S['$ref']] extends JSONSchema ? Property<D[S['$ref']], D> : JSONValue
+
+// anyOf schemas:
+
+interface JSONSchemaAnyOf extends JSONSchema {
+  anyOf: (JSONSchema | boolean)[]
+}
+
+export type AnyOfObject<
+  S extends JSONSchemaAnyOf,
+  D extends Definitions = {}
+> = S extends {
+  anyOf: Array<infer AnyOf>
+}
+  ? Property<AnyOf, D>
+  : never
+
+// allOf schemas:
+
+interface JSONSchemaAllOf extends JSONSchema {
+  allOf: (JSONSchema | boolean)[]
+}
+
+// Courtesy of @jcalz at https://stackoverflow.com/a/50375286/1763012:
+type UnionToIntersection<U> = (U extends any
+? (k: U) => void
+: never) extends (k: infer I) => void
+  ? I
+  : never
+
+export type AllOfObject<
+  S extends JSONSchemaAllOf,
+  D extends Definitions = {}
+> = S extends {
+  allOf: Array<infer AllOf>
+}
+  ? UnionToIntersection<Property<AllOf, D>>
+  : never
