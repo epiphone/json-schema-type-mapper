@@ -1,6 +1,11 @@
 // tslint:disable:no-implicit-dependencies
-import { expectAssignable, expectNotAssignable, expectType } from 'tsd'
-import { JSONValue, Schema } from '.'
+import { expectAssignable, expectType } from 'tsd'
+import { Compute, JSONValue, Schema } from '.'
+
+type WithAdditional<T, Additional = JSONValue> = Compute<
+  { [_: string]: Additional } & T
+>
+type NoAdditional<T> = WithAdditional<T, never>
 
 // Empty and boolean schemas:
 
@@ -162,6 +167,7 @@ declare const idRecursiveSchema: Schema<{
           $ref: '#person'
         }
       }
+      additionalProperties: false
     }
   }
   type: 'object'
@@ -170,40 +176,38 @@ declare const idRecursiveSchema: Schema<{
       $ref: '#person'
     }
   }
+  additionalProperties: false
 }>
-interface Person {
-  child: Person
-}
-expectAssignable<{ person?: Person }>(idRecursiveSchema)
+declare type Person1 = NoAdditional<{
+  child?: Person1 | undefined
+}>
+expectAssignable<NoAdditional<{ person?: Person1 }>>(idRecursiveSchema) // TODO: check with stricter `expectType`
 
 // Object schemas:
-// TODO: use `expectType` instead of `expectAssignable` for stricter checks
 
 declare const emptyObjectSchema: Schema<{
   type: 'object'
 }>
-expectAssignable<Record<string, JSONValue>>(emptyObjectSchema)
+expectType<{ [_: string]: JSONValue }>(emptyObjectSchema)
 
 declare const emptyPropertiesSchema: Schema<{
   properties: {}
 }>
-expectAssignable<Record<string, JSONValue>>(emptyPropertiesSchema)
+expectType<{ [_: string]: JSONValue }>(emptyPropertiesSchema)
 
 declare const emptyNoAdditionalObjectSchema: Schema<{
   type: 'object'
   properties: {}
   additionalProperties: false
 }>
-expectAssignable<{ [_ in string]: never }>(emptyNoAdditionalObjectSchema)
-expectNotAssignable<{ x: JSONValue }>(emptyNoAdditionalObjectSchema)
+expectType<{ [_: string]: never }>(emptyNoAdditionalObjectSchema)
 
 declare const basicObjectSchema: Schema<{
   type: 'object'
   properties: { x: { type: 'string' }; y: { type: 'number' } }
   required: ['x']
 }>
-expectAssignable<{ x: string; y?: number }>(basicObjectSchema)
-expectAssignable<{ x: string; y?: number; z?: JSONValue }>(basicObjectSchema)
+expectType<WithAdditional<{ x: string; y?: number }>>(basicObjectSchema)
 
 declare const basicObjectNoAdditionalSchema: Schema<{
   type: 'object'
@@ -211,7 +215,7 @@ declare const basicObjectNoAdditionalSchema: Schema<{
   required: ['x']
   additionalProperties: false
 }>
-expectNotAssignable<{ x: string; y?: number; z: string }>(
+expectType<NoAdditional<{ x: string; y?: number }>>(
   basicObjectNoAdditionalSchema
 )
 
@@ -224,7 +228,9 @@ declare const nestedObjectSchema: Schema<{
   }
   additionalProperties: false
 }>
-expectAssignable<{ x?: { y?: string } }>(nestedObjectSchema)
+expectType<NoAdditional<{ x?: WithAdditional<{ y?: string }> }>>(
+  nestedObjectSchema
+)
 
 // anyOf:
 
@@ -250,8 +256,7 @@ declare const anyOfObjectSchema: Schema<{
   }
   required: ['x']
 }>
-expectAssignable<{ x: string | number[] }>(anyOfObjectSchema)
-expectNotAssignable<{ x: null }>(anyOfObjectSchema)
+expectType<WithAdditional<{ x: string | number[] }>>(anyOfObjectSchema)
 
 // allOf:
 
@@ -266,5 +271,4 @@ declare const allOfObjectSchema: Schema<{
     { properties: { y: { type: 'number' } }; additionalProperties: false }
   ]
 }>
-expectAssignable<{ x?: string; y?: number }>(allOfObjectSchema)
-expectNotAssignable<{ x?: string; y?: number; z: number }>(allOfObjectSchema)
+expectType<NoAdditional<{ x?: string; y?: number }>>(allOfObjectSchema)

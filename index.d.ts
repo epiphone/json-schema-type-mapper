@@ -1,5 +1,15 @@
 import { JSONSchema } from 'json-schema-typed'
 
+// Helpers:
+
+/**
+ * Force TS to load a type that has not been computed
+ * https://github.com/pirix-gh/ts-toolbelt
+ */
+export type Compute<A extends any> = A extends Function
+  ? A
+  : { [K in keyof A]: A[K] } & {}
+
 /**
  * Define and use JSON types in favor of `any`:
  */
@@ -358,11 +368,13 @@ export type OptionalProperties<S extends JSONSchemaObject> = Exclude<
 export type PropertiesObject<
   S extends JSONSchemaObject,
   D extends Definitions = {}
-> = {
-  [P in RequiredProperties<S>]: Schema<S['properties'][P], D>
-} &
-  { [P in OptionalProperties<S>]?: Schema<S['properties'][P], D> } &
-  { [_ in string]: Schema<S['additionalProperties'], D> }
+> = Compute<
+  {
+    [P in RequiredProperties<S>]: Schema<S['properties'][P], D>
+  } &
+    { [P in OptionalProperties<S>]?: Schema<S['properties'][P], D> } &
+    { [_ in string]: Schema<S['additionalProperties'], D> }
+>
 
 /**
  * Reference objects such as `{ "$ref": "#some-id" }`:
@@ -411,5 +423,5 @@ export type AllOfObject<
 > = S extends {
   allOf: Array<infer AllOf>
 }
-  ? UnionToIntersection<Property<AllOf, D>>
+  ? Compute<UnionToIntersection<Property<AllOf, D>>>
   : never
