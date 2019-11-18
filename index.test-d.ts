@@ -152,6 +152,30 @@ declare const idArraySchema: Schema<{
 }>
 expectType<Array<1 | 2>>(idArraySchema)
 
+declare const idRecursiveSchema: Schema<{
+  definitions: {
+    person: {
+      $id: '#person'
+      type: 'object'
+      properties: {
+        child: {
+          $ref: '#person'
+        }
+      }
+    }
+  }
+  type: 'object'
+  properties: {
+    person: {
+      $ref: '#person'
+    }
+  }
+}>
+interface Person {
+  child: Person
+}
+expectAssignable<{ person?: Person }>(idRecursiveSchema)
+
 // Object schemas:
 // TODO: use `expectType` instead of `expectAssignable` for stricter checks
 

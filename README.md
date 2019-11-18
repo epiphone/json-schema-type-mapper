@@ -78,7 +78,6 @@ For a thorough list of supported features and examples check [the test file](./i
 ## Unsupported
 
 - path references like `{ "$ref": "#/definitions/User" }`; consider [using `$id`s](https://json-schema.org/understanding-json-schema/structuring.html#using-id-with-ref) instead!
-- [recursive `$ref`](https://json-schema.org/understanding-json-schema/structuring.html#recursion)
 - `not` only works on primitive types such as `{ "not": { "type": ["number", "string"] } }`
 - [object `propertyNames`](https://json-schema.org/understanding-json-schema/reference/object.html#property-names)
 - [object `minProperties`/`maxProperties`](https://json-schema.org/understanding-json-schema/reference/object.html#size)
