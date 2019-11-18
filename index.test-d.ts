@@ -149,3 +149,53 @@ declare const idArraySchema: Schema<{
   }
 }>
 expectType<Array<1 | 2>>(idArraySchema)
+
+// Object schemas:
+// TODO: use `expectType` instead of `expectAssignable` for stricter checks
+
+declare const emptyObjectSchema: Schema<{
+  type: 'object'
+}>
+expectAssignable<Record<string, JSONValue>>(emptyObjectSchema)
+
+declare const emptyPropertiesSchema: Schema<{
+  properties: {}
+}>
+expectAssignable<Record<string, JSONValue>>(emptyPropertiesSchema)
+
+declare const emptyNoAdditionalObjectSchema: Schema<{
+  type: 'object'
+  properties: {}
+  additionalProperties: false
+}>
+expectAssignable<{ [_ in string]: never }>(emptyNoAdditionalObjectSchema)
+expectNotAssignable<{ x: JSONValue }>(emptyNoAdditionalObjectSchema)
+
+declare const basicObjectSchema: Schema<{
+  type: 'object'
+  properties: { x: { type: 'string' }; y: { type: 'number' } }
+  required: ['x']
+}>
+expectAssignable<{ x: string; y?: number }>(basicObjectSchema)
+expectAssignable<{ x: string; y?: number; z?: JSONValue }>(basicObjectSchema)
+
+declare const basicObjectNoAdditionalSchema: Schema<{
+  type: 'object'
+  properties: { x: { type: 'string' }; y: { type: 'number' } }
+  required: ['x']
+  additionalProperties: false
+}>
+expectNotAssignable<{ x: string; y?: number; z: string }>(
+  basicObjectNoAdditionalSchema
+)
+
+declare const nestedObjectSchema: Schema<{
+  type: 'object'
+  properties: {
+    x: {
+      properties: { y: { type: 'string' } }
+    }
+  }
+  additionalProperties: false
+}>
+expectAssignable<{ x?: { y?: string } }>(nestedObjectSchema)
