@@ -70,7 +70,6 @@ For a thorough list of supported features and examples check [the test file](./i
 - [ ] [object `dependencies`](https://json-schema.org/understanding-json-schema/reference/object.html#dependencies)
     - [ ] [property dependencies](https://json-schema.org/understanding-json-schema/reference/object.html#property-dependencies)
     - [ ] [schema dependencies](https://json-schema.org/understanding-json-schema/reference/object.html#schema-dependencies)
-- [ ] [object `patternProperties`](https://json-schema.org/understanding-json-schema/reference/object.html#dependencies)
 - [x] [`allOf`, `anyOf`](https://json-schema.org/understanding-json-schema/reference/combining.html)
 - [ ] [`if`, `then`, `else`](https://json-schema.org/understanding-json-schema/reference/conditionals.html)
 - [x] [`$id`](https://json-schema.org/understanding-json-schema/structuring.html#using-id-with-ref)
@@ -81,6 +80,7 @@ For a thorough list of supported features and examples check [the test file](./i
 - `not` only works on primitive types such as `{ "not": { "type": ["number", "string"] } }`
 - [object `propertyNames`](https://json-schema.org/understanding-json-schema/reference/object.html#property-names)
 - [object `minProperties`/`maxProperties`](https://json-schema.org/understanding-json-schema/reference/object.html#size)
+- [object `patternProperties`](https://json-schema.org/understanding-json-schema/reference/object.html#pattern-properties)
 - [tuple `items: [...]`](https://json-schema.org/understanding-json-schema/reference/array.html#list-validation) limited to a maximum of 6 items for now
 - [array `contains`](https://json-schema.org/understanding-json-schema/reference/array.html#list-validation)
 - [array `minItems`/`maxItems`](https://json-schema.org/understanding-json-schema/reference/array.html#length)
