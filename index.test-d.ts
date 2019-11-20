@@ -272,3 +272,44 @@ declare const allOfObjectSchema: Schema<{
   ]
 }>
 expectType<NoAdditional<{ x?: string; y?: number }>>(allOfObjectSchema)
+
+// Complex objects:
+
+declare const complexSchema: Schema<{
+  definitions: {
+    address: {
+      $id: '#address'
+      properties: {
+        city: { type: 'string' }
+        country: { type: 'string'; enum: ['FI', 'SV', 'NO'] }
+      }
+      required: ['city', 'country']
+    }
+  }
+  allOf: [
+    { $ref: '#address' },
+    {
+      type: 'object'
+      properties: {
+        id: {
+          anyOf: [
+            { type: 'number' },
+            { type: 'array'; items: { type: 'number' } }
+          ]
+        }
+        name: {
+          type: ['string', 'null']
+        }
+      }
+      required: ['name']
+    }
+  ]
+}>
+expectType<
+  WithAdditional<{
+    city: string
+    country: 'FI' | 'SV' | 'NO'
+    name: string | null
+    id?: number | number[]
+  }>
+>(complexSchema)

@@ -63,6 +63,51 @@ Compared to code generation, this method has a number of [limitations](#Unsuppor
 
 For a thorough list of supported features and examples check [the test file](./index.test-d.ts).
 
+## Complex example
+
+```typescript
+type User = Schema<{
+  definitions: {
+    address: {
+      $id: '#address'
+      properties: {
+        city: { type: 'string' }
+        country: { type: 'string'; enum: ['FI', 'SV', 'NO'] }
+      }
+      required: ['city', 'country']
+    }
+  }
+  allOf: [
+    { $ref: '#address' },
+    {
+      type: 'object'
+      properties: {
+        id: {
+          anyOf: [
+            { type: 'number' },
+            { type: 'array'; items: { type: 'number' } }
+          ]
+        }
+        name: {
+          type: ['string', 'null']
+        }
+      }
+      required: ['name']
+    }
+  ]
+}>
+
+// resolves to:
+
+type User = {
+  [x: string]: JSONValue
+  name: string | null
+  id?: number | number[] | undefined
+  city: string
+  country: "FI" | "SV" | "NO"
+}
+```
+
 ## TODO
 
 - [ ] define schema as variable (`const schema = { ... } as const`) instead of interface
