@@ -11,6 +11,15 @@ export type Compute<A extends any> = A extends Function
   : { [K in keyof A]: A[K] } & {}
 
 /**
+ * Courtesy of @jcalz at https://stackoverflow.com/a/50375286/1763012
+ */
+type UnionToIntersection<U> = (U extends any
+? (k: U) => void
+: never) extends (k: infer I) => void
+  ? I
+  : never
+
+/*
  * Define and use JSON types in favor of `any`:
  */
 
@@ -28,7 +37,7 @@ export type JSONValue =
   | JSONObject
   | JSONArray
 
-/**
+/*
  * Group `definitions` sub-schemas by their `$id` property:
  */
 
@@ -56,29 +65,32 @@ export type DefinitionsById<S> = S extends JSONSchemaDefinitions
 /**
  * Root schema
  *
- * `Schema` cannot refer to itself recursively so we define another, partly
- * overlapping type `Property` as means of indirection:
+ * `Schema` cannot refer to itself recursively so we use an intermediate
+ * `Resolve` type and finite recursion.
  */
 
 export type Schema<
   S extends JSONSchema | boolean | undefined,
-  D extends Definitions = DefinitionsById<S>
-> = S extends false
-  ? never // TODO: handle other negation types such as `{ not: true }` and `{ not: {} }`
-  : S extends JSONSchemaRef
-  ? RefObject<S, D>
-  : S extends JSONSchemaAnyOf
-  ? AnyOfObject<S, D>
-  : S extends JSONSchemaAllOf
-  ? AllOfObject<S, D>
-  : S extends JSONSchema
-  ? Property<S, D>
-  : JSONValue // `Schema<true | undefined | {}>` resolves to any valid JSON value
+  D = DefinitionsById<S>,
+  R = Resolve<S, D>
+> = R extends ['recur', infer T]
+  ? S1<T, D>
+  : R extends ['allOf', infer T]
+  ? Compute<UnionToIntersection<S1<T, D>>>
+  : R
 
-export type Property<
-  S extends JSONSchema,
-  D extends Definitions = {}
-> = S extends JSONSchemaNot
+export type Resolve<
+  S extends JSONSchema | boolean | undefined,
+  D
+> = S extends false
+  ? never
+  : S extends JSONSchemaRef
+  ? ['recur', RefObject<S, D>]
+  : S extends { anyOf: Array<infer AnyOf> }
+  ? ['recur', AnyOf]
+  : S extends { allOf: Array<infer AllOf> }
+  ? ['allOf', AllOf]
+  : S extends JSONSchemaNot
   ? NotObject<S>
   : S extends JSONSchemaConst
   ? ConstObject<S>
@@ -92,7 +104,7 @@ export type Property<
   ? PropertiesObject<S, D>
   : S extends { type: 'object' } // Handle empty objects: `{ "type": "object" }`
   ? PropertiesObject<S & { properties: {} }, D>
-  : JSONValue
+  : JSONValue // `Schema<true | undefined | {}>` resolves to any valid JSON value
 
 /**
  * Primitive types, e.g. `{ "type": "string" }` and `{ "type": ["null", "number"] }`:
@@ -186,7 +198,7 @@ interface JSONSchemaArray extends JSONSchema {
 
 export type ArrayObject<
   S extends JSONSchemaArray,
-  D extends Definitions = {}
+  D
 > = S['items'] extends JSONSchema
   ? Schema<S['items'], D>[]
   : S extends JSONSchemaTuple
@@ -202,14 +214,14 @@ interface JSONSchemaTuple extends JSONSchema {
 
 export type TupleObject<
   S extends JSONSchemaTuple,
-  D extends Definitions = {}
+  D
 > = S['additionalItems'] extends false
-  ? TupleNoAdditionalObject<S>
-  : TupleWithAdditionalObject<S>
+  ? TupleNoAdditionalObject<S, D>
+  : TupleWithAdditionalObject<S, D>
 
 type TupleNoAdditionalObject<
   S extends JSONSchemaTuple,
-  D extends Definitions = {}
+  D
 > = S['items'] extends [infer S1]
   ? [] | [Schema<S1, D>]
   : S['items'] extends [infer S1, infer S2]
@@ -274,7 +286,7 @@ type TupleNoAdditionalObject<
 
 type TupleWithAdditionalObject<
   S extends JSONSchemaTuple,
-  D extends Definitions = {}
+  D
 > = S['items'] extends [infer S1]
   ? [] | [Schema<S1, D>, ...Schema<S['additionalItems'], D>[]]
   : S['items'] extends [infer S1, infer S2]
@@ -365,10 +377,7 @@ export type OptionalProperties<S extends JSONSchemaObject> = Exclude<
   RequiredProperties<S>
 >
 
-export type PropertiesObject<
-  S extends JSONSchemaObject,
-  D extends Definitions = {}
-> = Compute<
+export type PropertiesObject<S extends JSONSchemaObject, D> = Compute<
   {
     [P in RequiredProperties<S>]: Schema<S['properties'][P], D>
   } &
@@ -384,44 +393,70 @@ interface JSONSchemaRef extends JSONSchema {
   $ref: string
 }
 
-export type RefObject<
-  S extends JSONSchemaRef,
-  D extends Definitions = {}
-> = D[S['$ref']] extends JSONSchema ? Property<D[S['$ref']], D> : JSONValue
-
-// anyOf schemas:
-
-interface JSONSchemaAnyOf extends JSONSchema {
-  anyOf: (JSONSchema | boolean)[]
-}
-
-export type AnyOfObject<
-  S extends JSONSchemaAnyOf,
-  D extends Definitions = {}
-> = S extends {
-  anyOf: Array<infer AnyOf>
-}
-  ? Property<AnyOf, D>
+export type RefObject<S extends JSONSchemaRef, D> = D extends Definitions
+  ? D[S['$ref']]
   : never
 
-// allOf schemas:
+/*
+ * Finite recursion up to a maximum depth of 10:
+ */
 
-interface JSONSchemaAllOf extends JSONSchema {
-  allOf: (JSONSchema | boolean)[]
-}
+type AllOf<T> = Compute<UnionToIntersection<T>>
 
-// Courtesy of @jcalz at https://stackoverflow.com/a/50375286/1763012:
-type UnionToIntersection<U> = (U extends any
-? (k: U) => void
-: never) extends (k: infer I) => void
-  ? I
-  : never
+type S1<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S2<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S2<T, D>>
+  : R
 
-export type AllOfObject<
-  S extends JSONSchemaAllOf,
-  D extends Definitions = {}
-> = S extends {
-  allOf: Array<infer AllOf>
-}
-  ? Compute<UnionToIntersection<Property<AllOf, D>>>
-  : never
+type S2<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S3<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S3<T, D>>
+  : R
+
+type S3<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S4<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S4<T, D>>
+  : R
+
+type S4<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S5<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S5<T, D>>
+  : R
+
+type S5<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S6<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S6<T, D>>
+  : R
+
+type S6<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S7<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S7<T, D>>
+  : R
+
+type S7<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S8<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S8<T, D>>
+  : R
+
+type S8<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S9<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S9<T, D>>
+  : R
+
+type S9<S, D, R = Resolve<S, D>> = R extends ['recur', infer T]
+  ? S10<T, D>
+  : R extends ['allOf', infer T]
+  ? AllOf<S10<T, D>>
+  : R
+
+type S10<S, D, R = Resolve<S, D>> = R extends ['recur' | 'allOf', infer T]
+  ? never
+  : R
