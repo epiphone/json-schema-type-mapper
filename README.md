@@ -1,6 +1,6 @@
 # json-schema-type-mapper
 
-## Work in progress!
+## Caution! Experimental software ahead. Use at your own peril.
 
 Type-level conversion of JSON Schema (draft 7) into TypeScript types: **handle JSON Schemas as TypeScript types without code generation**.
 
@@ -13,7 +13,7 @@ declare const myString: Schema<{ type: 'string' }>
 
 ## Install
 
-~~`yarn add json-schema-type-mapper`~~
+`yarn add json-schema-type-mapper`
 
 ## Use case
 
