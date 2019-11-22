@@ -1,4 +1,5 @@
 # json-schema-type-mapper
+[![npm version](https://badge.fury.io/js/json-schema-type-mapper.svg)](https://badge.fury.io/js/json-schema-type-mapper)
 
 ## Caution! Experimental software ahead. Use at your own peril.
 
