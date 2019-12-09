@@ -79,6 +79,15 @@ export type Schema<
   ? Compute<UnionToIntersection<S1<T, D>>>
   : R
 
+// If a single `allOf` item contains `additionalProperties: false`, none of the
+// other items are allowed additional properties either:
+type OverrideAdditionalProperties<T> = Extract<
+  T,
+  { additionalProperties: false }
+> extends never
+  ? T
+  : T & { additionalProperties: false }
+
 export type Resolve<
   S extends JSONSchema | boolean | undefined,
   D
@@ -89,7 +98,7 @@ export type Resolve<
   : S extends { anyOf: Array<infer AnyOf> }
   ? ['recur', AnyOf]
   : S extends { allOf: Array<infer AllOf> }
-  ? ['allOf', AllOf]
+  ? ['allOf', OverrideAdditionalProperties<AllOf>]
   : S extends JSONSchemaNot
   ? NotObject<S>
   : S extends JSONSchemaConst

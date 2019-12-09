@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Fixed
 - Fix `additionalProperties: false` causing unresolvable objects like `{ x: string; [_: string]: never }`
+- A single `additionalProperties: false` among `allOf` items overrides the rest
 
 ## [0.0.1] - 2019-11-22
 - Initial release

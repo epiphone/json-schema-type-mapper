@@ -268,6 +268,14 @@ declare const allOfObjectSchema: Schema<{
 }>
 expectType<{ x?: string; y?: number }>(allOfObjectSchema)
 
+declare const allOfOverrideAdditionalPropertiesSchema: Schema<{
+  allOf: [
+    { properties: { x: { type: 'string' } }; additionalProperties: false },
+    { properties: { y: { type: 'number' } } }
+  ]
+}>
+expectType<{ x?: string; y?: number }>(allOfOverrideAdditionalPropertiesSchema)
+
 // Complex objects:
 
 declare const complexSchema: Schema<{
