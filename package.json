@@ -1,6 +1,6 @@
 {
   "name": "json-schema-type-mapper",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Type-level conversion of JSON Schema into Typescript types",
   "types": "index.d.ts",
   "repository": "git@github.com:epiphone/json-schema-type-mapper.git",
