@@ -382,7 +382,9 @@ export type PropertiesObject<S extends JSONSchemaObject, D> = Compute<
     [P in RequiredProperties<S>]: Schema<S['properties'][P], D>
   } &
     { [P in OptionalProperties<S>]?: Schema<S['properties'][P], D> } &
-    { [_ in string]: Schema<S['additionalProperties'], D> }
+    (S['additionalProperties'] extends false
+      ? {}
+      : { [_ in string]: Schema<S['additionalProperties'], D> })
 >
 
 /**

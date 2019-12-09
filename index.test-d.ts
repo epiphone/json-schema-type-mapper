@@ -5,7 +5,6 @@ import { Compute, JSONValue, Schema } from '.'
 type WithAdditional<T, Additional = JSONValue> = Compute<
   { [_: string]: Additional } & T
 >
-type NoAdditional<T> = WithAdditional<T, never>
 
 // Empty and boolean schemas:
 
@@ -178,10 +177,10 @@ declare const idRecursiveSchema: Schema<{
   }
   additionalProperties: false
 }>
-declare type Person1 = NoAdditional<{
+declare interface Person1 {
   child?: Person1 | undefined
-}>
-expectAssignable<NoAdditional<{ person?: Person1 }>>(idRecursiveSchema) // TODO: check with stricter `expectType`
+}
+expectAssignable<{ person?: Person1 }>(idRecursiveSchema) // TODO: check with stricter `expectType`
 
 // Object schemas:
 
@@ -200,7 +199,7 @@ declare const emptyNoAdditionalObjectSchema: Schema<{
   properties: {}
   additionalProperties: false
 }>
-expectType<{ [_: string]: never }>(emptyNoAdditionalObjectSchema)
+expectType<{}>(emptyNoAdditionalObjectSchema)
 
 declare const basicObjectSchema: Schema<{
   type: 'object'
@@ -215,9 +214,7 @@ declare const basicObjectNoAdditionalSchema: Schema<{
   required: ['x']
   additionalProperties: false
 }>
-expectType<NoAdditional<{ x: string; y?: number }>>(
-  basicObjectNoAdditionalSchema
-)
+expectType<{ x: string; y?: number }>(basicObjectNoAdditionalSchema)
 
 declare const nestedObjectSchema: Schema<{
   type: 'object'
@@ -228,9 +225,7 @@ declare const nestedObjectSchema: Schema<{
   }
   additionalProperties: false
 }>
-expectType<NoAdditional<{ x?: WithAdditional<{ y?: string }> }>>(
-  nestedObjectSchema
-)
+expectType<{ x?: WithAdditional<{ y?: string }> }>(nestedObjectSchema)
 
 // anyOf:
 
@@ -271,7 +266,7 @@ declare const allOfObjectSchema: Schema<{
     { properties: { y: { type: 'number' } }; additionalProperties: false }
   ]
 }>
-expectType<NoAdditional<{ x?: string; y?: number }>>(allOfObjectSchema)
+expectType<{ x?: string; y?: number }>(allOfObjectSchema)
 
 // Complex objects:
 
